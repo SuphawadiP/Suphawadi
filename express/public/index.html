@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Directory</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { text-align: center; }
+        .user-list { margin-top: 20px; }
+        .user { margin-bottom: 10px; }
+        form { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>User Directory</h1>
+        
+        <!-- Add User Form -->
+        <form id="addUserForm">
+            <h2>Add User</h2>
+            <input type="text" id="name" placeholder="Name" required>
+            <input type="number" id="age" placeholder="Age" required>
+            <input type="email" id="email" placeholder="Email" required>
+            <button type="submit">Add User</button>
+        </form>
+        
+        <!-- Edit User Form -->
+        <form id="editUserForm" style="display: none;">
+            <h2>Edit User</h2>
+            <input type="hidden" id="editId">
+            <input type="text" id="editName" placeholder="Name" required>
+            <input type="number" id="editAge" placeholder="Age" required>
+            <input type="email" id="editEmail" placeholder="Email" required>
+            <button type="submit">Update User</button>
+        </form>
+        
+        <!-- User List -->
+        <div class="user-list" id="userList"></div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUsers();
+        });
+
+        // Load users from API
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/users');
+                const users = await response.json();
+                const userList = document.getElementById('userList');
+                userList.innerHTML = '';
+                users.forEach(user => {
+                    const userDiv = document.createElement('div');
+                    userDiv.className = 'user';
+                    userDiv.innerHTML = `
+                        <strong>${user.name}</strong> (${user.age}) - ${user.email}
+                        <button onclick="editUser('${user._id}', '${user.name}', ${user.age}, '${user.email}')">Edit</button>
+                        <button onclick="deleteUser('${user._id}')">Delete</button>
+                    `;
+                    userList.appendChild(userDiv);
+                });
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+        }
+
+        // Add a new user
+        document.getElementById('addUserForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const name = document.getElementById('name').value;
+            const age = parseInt(document.getElementById('age').value);
+            const email = document.getElementById('email').value;
+            
+            try {
+                const response = await fetch('/api/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, age, email })
+                });
+                if (response.ok) {
+                    loadUsers();
+                    document.getElementById('addUserForm').reset();
+                } else {
+                    console.error('Error adding user:', await response.text());
+                }
+            } catch (error) {
+                console.error('Error adding user:', error);
+            }
+        });
+
+        // Edit a user
+        window.editUser = (id, name, age, email) => {
+            document.getElementById('editId').value = id;
+            document.getElementById('editName').value = name;
+            document.getElementById('editAge').value = age;
+            document.getElementById('editEmail').value = email;
+            document.getElementById('editUserForm').style.display = 'block';
+        };
+
+        document.getElementById('editUserForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const id = document.getElementById('editId').value;
+            const name = document.getElementById('editName').value;
+            const age = parseInt(document.getElementById('editAge').value);
+            const email = document.getElementById('editEmail').value;
+            
+            try {
+                const response = await fetch(`/api/users/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, age, email })
+                });
+                if (response.ok) {
+                    loadUsers();
+                    document.getElementById('editUserForm').reset();
+                    document.getElementById('editUserForm').style.display = 'none';
+                } else {
+                    console.error('Error updating user:', await response.text());
+                }
+            } catch (error) {
+                console.error('Error updating user:', error);
+            }
+        });
+
+        // Delete a user
+        window.deleteUser = async (id) => {
+            try {
+                const response = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    loadUsers();
+                } else {
+                    console.error('Error deleting user:', await response.text());
+                }
+            } catch (error) {
+                console.error('Error deleting user:', error);
+            }
+        };
+    </script>
+</body>
+</html>
+
